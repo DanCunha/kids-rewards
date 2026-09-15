@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #f3f6f9;
+  --color-brand-sidebar: #185abc;
+  --color-brand-sidebar-hover: #2a75d3;
+  --color-brand-banner: #154b9a;
+  --color-brand-text: #1e293b;
+  --color-brand-muted: #64748b;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--color-brand-bg);
+  color: var(--color-brand-text);
+  font-family: var(--font-sans);
+}

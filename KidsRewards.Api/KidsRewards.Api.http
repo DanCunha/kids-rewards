@@ -1,0 +1,76 @@
+@KidsRewards.Api_HostAddress = http://localhost:5183
+
+### Lista todas as crianças
+GET {{KidsRewards.Api_HostAddress}}/api/children
+Accept: application/json
+
+### Cria uma criança
+POST {{KidsRewards.Api_HostAddress}}/api/children
+Content-Type: application/json
+
+{
+  "name": "Lucas",
+  "age": 8,
+  "monthlyGoalPoints": 200
+}
+
+### Consulta criança por ID
+GET {{KidsRewards.Api_HostAddress}}/api/children/{id}
+Accept: application/json
+
+### Atualiza a meta mensal da criança
+PUT {{KidsRewards.Api_HostAddress}}/api/children/{id}/goal
+Content-Type: application/json
+
+{
+  "monthlyGoalPoints": 250,
+  "monthlyGoalRewardId": null
+}
+
+### Cria uma atividade para a criança
+POST {{KidsRewards.Api_HostAddress}}/api/activities
+Content-Type: application/json
+
+{
+  "childId": "{childId}",
+  "title": "Arrumar a cama",
+  "description": "Deixar o quarto organizado",
+  "points": 15
+}
+
+### Lista atividades da criança
+GET {{KidsRewards.Api_HostAddress}}/api/activities/child/{childId}
+Accept: application/json
+
+### Conclui uma atividade
+PATCH {{KidsRewards.Api_HostAddress}}/api/activities/{activityId}/complete
+
+### Cria uma recompensa
+POST {{KidsRewards.Api_HostAddress}}/api/rewards
+Content-Type: application/json
+
+{
+  "name": "30 min de Video Game",
+  "requiredPoints": 50
+}
+
+### Lista recompensas ativas
+GET {{KidsRewards.Api_HostAddress}}/api/rewards
+Accept: application/json
+
+### Resgata uma recompensa
+POST {{KidsRewards.Api_HostAddress}}/api/rewards/redeem
+Content-Type: application/json
+
+{
+  "childId": "{childId}",
+  "rewardId": "{rewardId}"
+}
+
+### Ativa/desativa uma recompensa
+PATCH {{KidsRewards.Api_HostAddress}}/api/rewards/{rewardId}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
