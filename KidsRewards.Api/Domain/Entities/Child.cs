@@ -12,6 +12,10 @@ public class Child
     [BsonElement("name")]
     public string Name { get; set; } = string.Empty;
 
+    [BsonElement("responsibleUserId")]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string ResponsibleUserId { get; set; } = string.Empty;
+
     [BsonElement("age")]
     public int Age { get; set; }
 

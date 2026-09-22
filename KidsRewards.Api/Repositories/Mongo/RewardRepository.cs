@@ -18,14 +18,14 @@ public class RewardRepository : IRewardRepository
         return await _collection.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Reward>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Reward>> GetByOwnerAsync(string ownerUserId, CancellationToken cancellationToken = default)
     {
-        return await _collection.Find(_ => true).SortBy(r => r.RequiredPoints).ToListAsync(cancellationToken);
+        return await _collection.Find(r => r.OwnerUserId == ownerUserId).SortBy(r => r.RequiredPoints).ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Reward>> GetAllActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Reward>> GetActiveByOwnerAsync(string ownerUserId, CancellationToken cancellationToken = default)
     {
-        return await _collection.Find(r => r.IsActive).SortBy(r => r.RequiredPoints).ToListAsync(cancellationToken);
+        return await _collection.Find(r => r.OwnerUserId == ownerUserId && r.IsActive).SortBy(r => r.RequiredPoints).ToListAsync(cancellationToken);
     }
 
     public async Task CreateAsync(Reward reward, CancellationToken cancellationToken = default)

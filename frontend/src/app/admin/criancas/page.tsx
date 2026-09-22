@@ -16,6 +16,8 @@ export default function AdminChildren() {
   const [name, setName] = useState("");
   const [age, setAge] = useState(10);
   const [goal, setGoal] = useState(200);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [goalEdits, setGoalEdits] = useState<Record<string, number>>({});
@@ -40,12 +42,24 @@ export default function AdminChildren() {
     setSubmitting(true);
     setFeedback(null);
     try {
-      const child = await createChild({ name, age, monthlyGoalPoints: goal });
+      const child = await createChild({
+        name,
+        age,
+        monthlyGoalPoints: goal,
+        loginEmail: loginEmail || null,
+        loginPassword: loginPassword || null,
+      });
       setChildren((prev) => [...prev, child]);
       setName("");
       setAge(10);
       setGoal(200);
-      setFeedback(`Criança "${child.name}" cadastrada com sucesso!`);
+      setLoginEmail("");
+      setLoginPassword("");
+      setFeedback(
+        loginEmail
+          ? `Criança "${child.name}" cadastrada com acesso de login!`
+          : `Criança "${child.name}" cadastrada com sucesso!`
+      );
     } catch (err) {
       setFeedback(null);
       setError(err instanceof Error ? err.message : "Erro ao cadastrar.");
@@ -136,6 +150,37 @@ export default function AdminChildren() {
             />
           </div>
         </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              Email de acesso (opcional)
+            </label>
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              placeholder="crianca@email.com"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-sidebar focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              Senha de acesso (opcional)
+            </label>
+            <input
+              type="password"
+              minLength={6}
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="Mínimo de 6 caracteres"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-sidebar focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-brand-muted">
+          Preencha email e senha para permitir que a criança entre no próprio painel.
+        </p>
         <button
           type="submit"
           disabled={submitting}

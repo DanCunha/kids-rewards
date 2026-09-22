@@ -13,7 +13,13 @@ public record CreateChildRequest(
     [Range(0, 100000, ErrorMessage = "A meta de pontos não pode ser negativa.")]
     int MonthlyGoalPoints = 0,
 
-    string? MonthlyGoalRewardId = null
+    string? MonthlyGoalRewardId = null,
+
+    [EmailAddress(ErrorMessage = "Email de acesso inválido.")]
+    string? LoginEmail = null,
+
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "A senha de acesso deve ter entre 6 e 100 caracteres.")]
+    string? LoginPassword = null
 );
 
 public record UpdateChildGoalRequest(

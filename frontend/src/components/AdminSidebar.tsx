@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Award,
   CheckCircle2,
   Gift,
   History,
   LayoutDashboard,
+  LogOut,
   Users,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -21,6 +23,13 @@ const navItems = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+  };
 
   return (
     <>
@@ -63,6 +72,12 @@ export default function AdminSidebar() {
           >
             <Award className="h-4 w-4" /> Ver painel da criança
           </Link>
+          <button
+            onClick={handleLogout}
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-blue-100 hover:bg-brand-sidebar-hover/50"
+          >
+            <LogOut className="h-4 w-4" /> Sair{user ? ` (${user.name.split(" ")[0]})` : ""}
+          </button>
         </div>
       </aside>
 
@@ -89,6 +104,12 @@ export default function AdminSidebar() {
         >
           <Award className="h-3.5 w-3.5" /> Criança
         </Link>
+        <button
+          onClick={handleLogout}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-100"
+        >
+          <LogOut className="h-3.5 w-3.5" /> Sair
+        </button>
       </nav>
     </>
   );

@@ -18,9 +18,9 @@ public class ChildRepository : IChildRepository
         return await _collection.Find(c => c.Id == id).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Child>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Child>> GetByResponsibleIdAsync(string responsibleUserId, CancellationToken cancellationToken = default)
     {
-        return await _collection.Find(_ => true).ToListAsync(cancellationToken);
+        return await _collection.Find(c => c.ResponsibleUserId == responsibleUserId).ToListAsync(cancellationToken);
     }
 
     public async Task CreateAsync(Child child, CancellationToken cancellationToken = default)

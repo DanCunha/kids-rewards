@@ -1,3 +1,4 @@
+using KidsRewards.Api.Authentication;
 using KidsRewards.Api.Domain.Entities;
 using KidsRewards.Api.Domain.Enums;
 using KidsRewards.Api.DTOs;
@@ -13,6 +14,7 @@ public class ActivityServiceTests
     private readonly Mock<IChildRepository> _childRepository;
     private readonly Mock<IPointsHistoryRepository> _historyRepository;
     private readonly ActivityService _service;
+    private readonly UserContext _context = new("u1", "Responsible", null);
 
     public ActivityServiceTests()
     {
@@ -21,6 +23,8 @@ public class ActivityServiceTests
         _historyRepository = new Mock<IPointsHistoryRepository>();
         _service = new ActivityService(_activityRepository.Object, _childRepository.Object, _historyRepository.Object);
     }
+
+    private Child OwnedChild(string id = "c1") => new() { Id = id, Name = "Lucas", ResponsibleUserId = "u1" };
 
     [Fact]
     public async Task CompleteActivityAsync_PendingActivity_AddsPointsAndWritesHistory()
@@ -36,9 +40,10 @@ public class ActivityServiceTests
         _activityRepository.Setup(r => r.GetByIdAsync("a1", It.IsAny<CancellationToken>())).ReturnsAsync(activity);
         _activityRepository.Setup(r => r.MarkAsCompletedAsync("a1", It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        _childRepository.Setup(r => r.GetByIdAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(OwnedChild());
         _childRepository.Setup(r => r.UpdateBalanceAsync("c1", 15, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
-        var result = await _service.CompleteActivityAsync("a1", CancellationToken.None);
+        var result = await _service.CompleteActivityAsync("a1", _context, CancellationToken.None);
 
         Assert.True(result);
         _childRepository.Verify(r => r.UpdateBalanceAsync("c1", 15, It.IsAny<CancellationToken>()), Times.Once);
@@ -66,7 +71,7 @@ public class ActivityServiceTests
         };
         _activityRepository.Setup(r => r.GetByIdAsync("a1", It.IsAny<CancellationToken>())).ReturnsAsync(activity);
 
-        var result = await _service.CompleteActivityAsync("a1", CancellationToken.None);
+        var result = await _service.CompleteActivityAsync("a1", _context, CancellationToken.None);
 
         Assert.False(result);
         _childRepository.Verify(r => r.UpdateBalanceAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -79,7 +84,7 @@ public class ActivityServiceTests
         _activityRepository.Setup(r => r.GetByIdAsync("inexistente", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Activity?)null);
 
-        var result = await _service.CompleteActivityAsync("inexistente", CancellationToken.None);
+        var result = await _service.CompleteActivityAsync("inexistente", _context, CancellationToken.None);
 
         Assert.False(result);
         _childRepository.Verify(r => r.UpdateBalanceAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -99,8 +104,9 @@ public class ActivityServiceTests
         _activityRepository.Setup(r => r.GetByIdAsync("a1", It.IsAny<CancellationToken>())).ReturnsAsync(activity);
         _activityRepository.Setup(r => r.MarkAsCompletedAsync("a1", It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        _childRepository.Setup(r => r.GetByIdAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(OwnedChild());
 
-        var result = await _service.CompleteActivityAsync("a1", CancellationToken.None);
+        var result = await _service.CompleteActivityAsync("a1", _context, CancellationToken.None);
 
         Assert.False(result);
         _childRepository.Verify(r => r.UpdateBalanceAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -114,17 +120,17 @@ public class ActivityServiceTests
             .ReturnsAsync((Child?)null);
         var request = new CreateActivityRequest("inexistente", "Lição de casa", "Matemática", 30);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(request, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(_context, request, CancellationToken.None));
     }
 
     [Fact]
     public async Task CreateAsync_CreatesPendingActivity()
     {
         _childRepository.Setup(r => r.GetByIdAsync("c1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Child { Id = "c1", Name = "Lucas" });
+            .ReturnsAsync(OwnedChild());
         var request = new CreateActivityRequest("c1", "  Lição de casa  ", "Matemática", 30);
 
-        var result = await _service.CreateAsync(request, CancellationToken.None);
+        var result = await _service.CreateAsync(_context, request, CancellationToken.None);
 
         Assert.Equal("Lição de casa", result.Title);
         Assert.Equal(30, result.Points);

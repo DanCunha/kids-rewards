@@ -18,7 +18,7 @@ O **KidsRewards** transforma a rotina infantil em uma jornada gamificada: a cria
 | # | Decisão | Escolha |
 | :--- | :--- | :--- |
 | 1 | Escopo do frontend | Painel Admin **+** Dashboard da Criança |
-| 2 | Autenticação | **Sem auth** no MVP (família única) |
+| 2 | Autenticação | **JWT em cookie HttpOnly** (email + senha BCrypt) — ver ADR-006 |
 | 3 | Estrutura do repositório | **Monorepo raiz** |
 | 4 | MongoDB local | **Docker Compose** (porta 27017) |
 | 5 | Meta mensal | Acumulado de `Earned` no mês vigente (ver ADR-005) |
@@ -115,7 +115,15 @@ Base URL de desenvolvimento: `http://localhost:5000` (ou porta do `launchSetting
 ```json
 { "message": "Descrição legível do erro." }
 ```
-Códigos: `200 OK`, `201 Created`, `204 NoContent`, `400 BadRequest`, `404 NotFound`.
+Códigos: `200 OK`, `201 Created`, `204 NoContent`, `400 BadRequest`, `401 Unauthorized`, `404 NotFound`.
+
+### 5.6 Auth
+| Método | Rota | Descrição |
+| :--- | :--- | :--- |
+| POST | `/api/auth/register` | Cadastra responsável (público) |
+| POST | `/api/auth/login` | Login (define cookie HttpOnly `AuthToken`) |
+| POST | `/api/auth/logout` | Encerra sessão (remove cookie) |
+| GET | `/api/auth/me` | Retorna o usuário autenticado |
 
 ## 6. Fases de Execução (Gates)
 
@@ -260,5 +268,6 @@ Códigos: `200 OK`, `201 Created`, `204 NoContent`, `400 BadRequest`, `404 NotFo
 
 - **ADR-002:** Monorepo raiz (backend + frontend versionados juntos).
 - **ADR-003:** Duas interfaces (admin desktop + criança mobile) na mesma app Next.js.
-- **ADR-004:** Sem autenticação no MVP (família única, uso local).
+- **ADR-004:** Sem autenticação no MVP (família única, uso local). *Substituído pelo ADR-006.*
 - **ADR-005:** Meta mensal calculada pelo acumulado de `Earned` no mês vigente — ver `docs/adr/ADR-005-meta-mensal.md`.
+- **ADR-006:** Autenticação JWT em cookie HttpOnly — ver `docs/adr/ADR-006-autenticacao.md`.

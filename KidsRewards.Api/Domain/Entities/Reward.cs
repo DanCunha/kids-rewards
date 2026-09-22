@@ -12,6 +12,10 @@ public class Reward
     [BsonElement("name")]
     public string Name { get; set; } = string.Empty;
 
+    [BsonElement("ownerUserId")]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string OwnerUserId { get; set; } = string.Empty;
+
     [BsonElement("requiredPoints")]
     public int RequiredPoints { get; set; }
 

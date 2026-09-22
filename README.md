@@ -9,6 +9,7 @@ Gerenciador de atividades e recompensas infantis. As crianças concluem tarefas,
 | Backend | C# (.NET 8 Web API) + MongoDB |
 | Frontend | Next.js (App Router) + TypeScript + Tailwind CSS (Mobile First) |
 | Banco local | MongoDB 7 via Docker Compose |
+| Autenticação | JWT em cookie HttpOnly + BCrypt |
 | Testes | xUnit + Moq |
 
 ## Estrutura
@@ -50,10 +51,19 @@ npm install
 npm run dev
 ```
 
-- Abra `http://localhost:3000` — **dashboard da criança** (mobile-first, com seletor de criança).
+- Abra `http://localhost:3000` — **dashboard da criança** (mobile-first).
+- Abra `http://localhost:3000/login` — **login** (crie sua conta em `/register`).
 - Abra `http://localhost:3000/admin` — **painel dos pais** (sidebar, KPIs, CRUD).
 
 > A API é consumida via `NEXT_PUBLIC_API_URL` (default `http://localhost:5183/api`). CORS liberado apenas para `http://localhost:3000`.
+
+## Autenticação
+
+- Cadastre um **responsável** em `POST /api/auth/register` (ou pela tela `/register`).
+- O login define um cookie HttpOnly `AuthToken` (JWT); o frontend envia `credentials: "include"`.
+- **Responsável**: acessa `/admin` e o painel da criança (com seletor de filhos).
+- **Criança**: acessa apenas o próprio dashboard (`/`); **não** acessa `/admin`.
+- Para dar acesso a uma criança, cadastre-a com **email/senha de acesso** (opcional) no painel "Crianças".
 
 ## Testes
 
@@ -74,6 +84,7 @@ dotnet test
 
 | Recurso | Endpoints |
 | :--- | :--- |
+| Autenticação | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
 | Crianças | `POST/GET /api/children`, `GET /api/children/{id}`, `PUT /api/children/{id}/goal` |
 | Atividades | `POST /api/activities`, `GET /api/activities/child/{childId}`, `PATCH /api/activities/{id}/complete` |
 | Recompensas | `POST/GET /api/rewards`, `GET /api/rewards/all`, `POST /api/rewards/redeem`, `PATCH /api/rewards/{id}` |
@@ -91,4 +102,4 @@ dotnet test
 
 - `docs/planejamento.md` — planejamento por Gates e contrato da API.
 - `docs/coding-guidelines.md` — convenções de código (C#, Next.js, Git).
-- `docs/adr/` — decisões de arquitetura (ADR-005: meta mensal por acúmulo mensal).
+- `docs/adr/` — decisões de arquitetura (ADR-005: meta mensal por acúmulo mensal; ADR-006: autenticação JWT em cookie).

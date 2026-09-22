@@ -5,9 +5,12 @@ import type {
   CreateChildInput,
   CreateRewardInput,
   HistoryItem,
+  LoginInput,
   RedeemRewardInput,
+  RegisterInput,
   Reward,
   UpdateGoalInput,
+  User,
 } from "./types";
 
 function resolveBaseUrl(): string {
@@ -22,7 +25,14 @@ function resolveBaseUrl(): string {
 
 const BASE_URL = resolveBaseUrl();
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -30,13 +40,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     res = await fetch(`${BASE_URL}${path}`, {
       ...init,
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      credentials: "include",
       cache: "no-store",
     });
   } catch {
-    throw new ApiError("Não foi possível conectar ao servidor.");
+    throw new ApiError("Não foi possível conectar ao servidor.", 0);
   }
 
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/auth/") && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("auth:unauthorized"));
+    }
+
     let message = `Erro ${res.status}`;
     try {
       const body = await res.json();
@@ -45,12 +60,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // corpo não-JSON: mantém mensagem genérica
     }
-    throw new ApiError(message);
+    throw new ApiError(message, res.status);
   }
 
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
+
+// Auth
+export const login = (input: LoginInput) =>
+  request<User>("/auth/login", { method: "POST", body: JSON.stringify(input) });
+export const register = (input: RegisterInput) =>
+  request<User>("/auth/register", { method: "POST", body: JSON.stringify(input) });
+export const logout = () => request<void>("/auth/logout", { method: "POST" });
+
+export const getMe = async (): Promise<User | null> => {
+  try {
+    return await request<User>("/auth/me");
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return null;
+    throw err;
+  }
+};
 
 // Children
 export const getChildren = () => request<Child[]>("/children");

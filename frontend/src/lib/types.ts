@@ -1,3 +1,24 @@
+export type UserType = "Responsible" | "Child";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  type: UserType;
+  childId: string | null;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface RegisterInput {
+  name: string;
+  email: string;
+  password: string;
+}
+
 export interface Child {
   id: string;
   name: string;
@@ -44,6 +65,8 @@ export interface CreateChildInput {
   age: number;
   monthlyGoalPoints?: number;
   monthlyGoalRewardId?: string | null;
+  loginEmail?: string | null;
+  loginPassword?: string | null;
 }
 
 export interface UpdateGoalInput {

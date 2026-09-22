@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Award, CheckCircle2, Gift, History, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Award, CheckCircle2, Gift, History, LogOut, Star } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 import {
   completeActivity,
   getActivitiesByChild,
@@ -28,6 +30,9 @@ function formatHistoryDate(iso: string) {
 }
 
 export default function KidsDashboard() {
+  const { user, loading: authLoading, logout } = useAuth();
+  const router = useRouter();
+  const isChildUser = user?.type === "Child";
   const [children, setChildren] = useState<Child[]>([]);
   const [childId, setChildId] = useState<string | null>(null);
   const [child, setChild] = useState<Child | null>(null);
@@ -54,14 +59,24 @@ export default function KidsDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!authLoading && !user) router.replace("/login");
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
     (async () => {
       try {
-        const kids = await getChildren();
-        setChildren(kids);
-        if (kids.length > 0) {
-          const firstId = kids[0].id;
-          setChildId(firstId);
-          await refresh(firstId);
+        if (user.type === "Child" && user.childId) {
+          setChildId(user.childId);
+          await refresh(user.childId);
+        } else {
+          const kids = await getChildren();
+          setChildren(kids);
+          if (kids.length > 0) {
+            const firstId = kids[0].id;
+            setChildId(firstId);
+            await refresh(firstId);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao carregar dados.");
@@ -69,7 +84,12 @@ export default function KidsDashboard() {
         setLoading(false);
       }
     })();
-  }, [refresh]);
+  }, [authLoading, user, refresh]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+  };
 
   const handleChildChange = async (id: string) => {
     setChildId(id);
@@ -133,7 +153,7 @@ export default function KidsDashboard() {
     ? Math.min(100, Math.round((monthlyEarned / child.monthlyGoalPoints) * 100))
     : 0;
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
@@ -143,7 +163,7 @@ export default function KidsDashboard() {
     );
   }
 
-  if (children.length === 0) {
+  if ((isChildUser && !child) || (!isChildUser && children.length === 0)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
         <p className="text-center text-sm font-medium text-slate-500">
@@ -169,10 +189,19 @@ export default function KidsDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 rounded-2xl bg-white/95 px-3.5 py-2 shadow-inner">
-            <Star className="h-6 w-6 animate-pulse fill-yellow-400 text-yellow-500" />
-            <span className="text-xl font-black text-slate-900">{child?.pointsBalance}</span>
-            <span className="text-xs font-bold text-slate-500">pts</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-2xl bg-white/95 px-3.5 py-2 shadow-inner">
+              <Star className="h-6 w-6 animate-pulse fill-yellow-400 text-yellow-500" />
+              <span className="text-xl font-black text-slate-900">{child?.pointsBalance}</span>
+              <span className="text-xs font-bold text-slate-500">pts</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              aria-label="Sair"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white transition-colors hover:bg-white/30"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
