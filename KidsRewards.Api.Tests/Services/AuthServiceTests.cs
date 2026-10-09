@@ -4,6 +4,7 @@ using KidsRewards.Api.Domain.Enums;
 using KidsRewards.Api.DTOs;
 using KidsRewards.Api.Repositories.Interfaces;
 using KidsRewards.Api.Services.Implementation;
+using KidsRewards.Api.Services.Interfaces;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -12,11 +13,15 @@ namespace KidsRewards.Api.Tests.Services;
 public class AuthServiceTests
 {
     private readonly Mock<IUserRepository> _userRepository;
+    private readonly Mock<IPasswordResetTokenRepository> _passwordResetTokenRepository;
+    private readonly Mock<IEmailService> _emailService;
     private readonly AuthService _service;
 
     public AuthServiceTests()
     {
         _userRepository = new Mock<IUserRepository>();
+        _passwordResetTokenRepository = new Mock<IPasswordResetTokenRepository>();
+        _emailService = new Mock<IEmailService>();
         var jwtSettings = Options.Create(new JwtSettings
         {
             Secret = "test-secret-with-at-least-32-characters!!",
@@ -24,7 +29,17 @@ public class AuthServiceTests
             Audience = "KidsRewards.Frontend",
             ExpirationMinutes = 60
         });
-        _service = new AuthService(_userRepository.Object, jwtSettings);
+        var passwordResetSettings = Options.Create(new PasswordResetSettings
+        {
+            TokenExpirationMinutes = 30,
+            FrontendBaseUrl = "http://localhost:3000"
+        });
+        _service = new AuthService(
+            _userRepository.Object,
+            _passwordResetTokenRepository.Object,
+            _emailService.Object,
+            jwtSettings,
+            passwordResetSettings);
     }
 
     [Fact]
@@ -104,5 +119,77 @@ public class AuthServiceTests
         var result = await _service.LoginAsync(new LoginRequest("nada@email.com", "secret123"), CancellationToken.None);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task RequestPasswordResetAsync_WhenUserExists_CreatesTokenAndSendsEmail()
+    {
+        var user = new User { Id = "u1", Name = "Pai", Email = "pai@email.com" };
+        _userRepository.Setup(r => r.GetByEmailAsync("pai@email.com", It.IsAny<CancellationToken>())).ReturnsAsync(user);
+
+        await _service.RequestPasswordResetAsync(new ForgotPasswordRequest("pai@email.com"), CancellationToken.None);
+
+        _passwordResetTokenRepository.Verify(r => r.DeleteByUserIdAsync("u1", It.IsAny<CancellationToken>()), Times.Once);
+        _passwordResetTokenRepository.Verify(r => r.CreateAsync(It.Is<PasswordResetToken>(t => t.UserId == "u1" && t.ExpiresAt > t.CreatedAt), It.IsAny<CancellationToken>()), Times.Once);
+        _emailService.Verify(e => e.SendAsync("pai@email.com", It.IsAny<string>(), It.Is<string>(b => b.Contains("/reset-password?token=")), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestPasswordResetAsync_WhenUserNotFound_DoesNothing()
+    {
+        _userRepository.Setup(r => r.GetByEmailAsync("nada@email.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        await _service.RequestPasswordResetAsync(new ForgotPasswordRequest("nada@email.com"), CancellationToken.None);
+
+        _passwordResetTokenRepository.Verify(r => r.CreateAsync(It.IsAny<PasswordResetToken>(), It.IsAny<CancellationToken>()), Times.Never);
+        _emailService.Verify(e => e.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_WithValidToken_UpdatesPasswordAndMarksUsed()
+    {
+        var resetToken = new PasswordResetToken
+        {
+            Id = "rt1",
+            UserId = "u1",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+        };
+        _passwordResetTokenRepository.Setup(r => r.GetByTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(resetToken);
+        _userRepository.Setup(r => r.GetByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = "u1", Email = "pai@email.com", PasswordHash = "old-hash" });
+        string? updatedHash = null;
+        _userRepository.Setup(r => r.UpdatePasswordHashAsync("u1", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((_, hash, _) => updatedHash = hash)
+            .ReturnsAsync(true);
+
+        await _service.ResetPasswordAsync(new ResetPasswordRequest("token", "nova-senha"), CancellationToken.None);
+
+        Assert.NotNull(updatedHash);
+        Assert.True(BCrypt.Net.BCrypt.Verify("nova-senha", updatedHash));
+        _passwordResetTokenRepository.Verify(r => r.MarkUsedAsync("rt1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_WhenTokenNotFound_Throws()
+    {
+        _passwordResetTokenRepository.Setup(r => r.GetByTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PasswordResetToken?)null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ResetPasswordAsync(new ResetPasswordRequest("token", "nova-senha"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_WhenTokenExpired_Throws()
+    {
+        var resetToken = new PasswordResetToken
+        {
+            Id = "rt1",
+            UserId = "u1",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(-1)
+        };
+        _passwordResetTokenRepository.Setup(r => r.GetByTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(resetToken);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ResetPasswordAsync(new ResetPasswordRequest("token", "nova-senha"), CancellationToken.None));
     }
 }

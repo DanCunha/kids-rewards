@@ -19,6 +19,15 @@ export interface RegisterInput {
   password: string;
 }
 
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  password: string;
+}
+
 export interface Child {
   id: string;
   name: string;

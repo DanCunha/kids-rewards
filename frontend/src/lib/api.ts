@@ -4,10 +4,12 @@ import type {
   CreateActivityInput,
   CreateChildInput,
   CreateRewardInput,
+  ForgotPasswordInput,
   HistoryItem,
   LoginInput,
   RedeemRewardInput,
   RegisterInput,
+  ResetPasswordInput,
   Reward,
   UpdateGoalInput,
   User,
@@ -73,6 +75,10 @@ export const login = (input: LoginInput) =>
 export const register = (input: RegisterInput) =>
   request<User>("/auth/register", { method: "POST", body: JSON.stringify(input) });
 export const logout = () => request<void>("/auth/logout", { method: "POST" });
+export const forgotPassword = (input: ForgotPasswordInput) =>
+  request<{ message: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify(input) });
+export const resetPassword = (input: ResetPasswordInput) =>
+  request<{ message: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify(input) });
 
 export const getMe = async (): Promise<User | null> => {
   try {

@@ -28,4 +28,12 @@ public class UserRepository : IUserRepository
     {
         await _collection.InsertOneAsync(user, cancellationToken: cancellationToken);
     }
+
+    public async Task<bool> UpdatePasswordHashAsync(string userId, string passwordHash, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
+        var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash);
+        var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+        return result.ModifiedCount > 0;
+    }
 }
